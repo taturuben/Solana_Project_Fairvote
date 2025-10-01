@@ -65,3 +65,30 @@ main {
   max-width: 600px;
   margin: 2rem auto;
 }
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-label {
+  font-size: 0.9rem;
+  color: #2d3a4a;
+  font-weight: 500;
+}
+
+.signout-btn {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.signout-btn:hover {
+  background: #b02a37;
+}

@@ -16,14 +16,14 @@ const Header = ({ wallet, username }) => {
       </nav>
       <div className="header-right">
         {wallet ? (
-          <>
-            <span style={{ fontSize: "0.9rem" }}>{username} ({wallet.slice(0, 6)}...)</span>
+          <div className="user-info">
+            <span className="user-label">{username} ({wallet.slice(0, 6)}...)</span>
             <NavLink to="/dashboard" className="nav-link">My Pools</NavLink>
-            <button className="connect-btn" onClick={() => {
+            <button className="signout-btn" onClick={() => {
               localStorage.clear();
               window.location.href = "/connect";
             }}>Sign Out</button>
-          </>
+          </div>
         ) : (
           <WalletMultiButton />
         )}
