@@ -10,10 +10,12 @@ const Header = ({ wallet, username }) => {
       <div className="header-left">
         <span className="app-name">FairVote.ro</span>
       </div>
-      <nav className="header-center">
+
+      <div className="header-center-absolute">
         <NavLink to="/vote" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Vote</NavLink>
         <NavLink to="/results" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>Results</NavLink>
-      </nav>
+      </div>
+
       <div className="header-right">
         {wallet ? (
           <div className="user-info">

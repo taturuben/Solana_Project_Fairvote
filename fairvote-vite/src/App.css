@@ -5,6 +5,7 @@ body {
 }
 
 .header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -14,6 +15,14 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
+.header-center-absolute {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+}
+
 .header-left .app-name {
   font-weight: bold;
   font-size: 1.5rem;
@@ -21,9 +30,11 @@ body {
 }
 
 .header-center {
+  flex: 1;
   display: flex;
-  gap: 2rem;
+  justify-content: center;
 }
+
 
 .nav-link {
   text-decoration: none;
