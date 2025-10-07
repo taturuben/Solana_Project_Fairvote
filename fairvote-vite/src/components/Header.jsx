@@ -20,7 +20,7 @@ const Header = ({ wallet, username }) => {
         {wallet ? (
           <div className="user-info">
             <span className="user-label">{username} ({wallet.slice(0, 6)}...)</span>
-            <NavLink to="/dashboard" className="nav-link">My Pools</NavLink>
+            <NavLink to="/dashboard" className="nav-link">My Polls</NavLink>
             <button className="signout-btn" onClick={() => {
               localStorage.clear();
               window.location.href = "/connect";
