@@ -181,3 +181,33 @@ main {
   border-radius: 4px;
   border: 1px solid #ccc;
 }
+
+.poll-card {
+  background: #fefefe;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.vote-option {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.voted-card {
+  background: #eafaf1;
+  padding: 1rem;
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.voted-option {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #28a745;
+  margin-top: 0.5rem;
+}

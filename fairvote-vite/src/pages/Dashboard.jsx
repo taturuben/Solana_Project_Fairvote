@@ -11,6 +11,10 @@ const Dashboard = () => {
     setPolls(savedPolls);
   }, []);
 
+  const walletAddress = localStorage.getItem("wallet"); // your wallet
+  const allPolls = JSON.parse(localStorage.getItem("polls")) || [];
+  const myPolls = allPolls.filter(p => p.creator === walletAddress);
+
   const handleOptionChange = (index, value) => {
     const updated = [...options];
     updated[index] = value;
@@ -25,10 +29,21 @@ const Dashboard = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const walletAddress = localStorage.getItem("wallet");
+    const username = localStorage.getItem("username");
     const newPoll = {
       title,
       options: options.filter(opt => opt.trim() !== ""),
-      code: generateCode()
+      code: generateCode(),
+      creator: walletAddress,
+      requests: [
+        {
+          wallet: walletAddress,
+          username: username,
+          status: "approved"
+        }
+      ],
+      votes: []
     };
     const updatedPolls = [...polls, newPoll];
     setPolls(updatedPolls);
@@ -36,7 +51,21 @@ const Dashboard = () => {
     setTitle("");
     setOptions(["", ""]);
     setShowForm(false);
+
+    localStorage.setItem("activePollCode", newPoll.code);
   };
+    const updateRequest = (code, wallet, newStatus) => {
+    const polls = JSON.parse(localStorage.getItem("polls")) || [];
+    const pollIndex = polls.findIndex(p => p.code === code);
+    if (pollIndex === -1) return;
+
+    const request = polls[pollIndex].requests.find(r => r.wallet === wallet);
+    if (request) {
+      request.status = newStatus;
+      localStorage.setItem("polls", JSON.stringify(polls));
+      setPolls(polls); // refresh UI
+    }
+    };
 
   return (
     <section className="section">
@@ -76,19 +105,44 @@ const Dashboard = () => {
       <hr style={{ margin: "2rem 0" }} />
 
       <h3>Created Polls</h3>
-      {polls.length === 0 ? (
-        <p>No polls created yet.</p>
-      ) : (
-        <div className="poll-list">
-          {polls.map((poll, idx) => (
-            <div key={idx} className="poll-card">
-              <h4>{poll.title}</h4>
-              <p>{poll.options.length} options</p>
-              <p><strong>Invite Code:</strong> {poll.code}</p>
-            </div>
-          ))}
+      {myPolls.map((poll, idx) => (
+        <div key={idx} className="poll-card">
+          <h4>{poll.title}</h4>
+          <p><strong>Invite Code:</strong> {poll.code}</p>
+
+          <h5>Requests to Vote:</h5>
+          {poll.requests.length === 0 ? (
+            <p>No requests yet.</p>
+          ) : (
+            poll.requests
+              .filter(req => req.wallet !== poll.creator)
+              .map((req, rIdx) => (
+                <div key={rIdx} style={{ marginBottom: "0.5rem" }}>
+                  {req.username} ({req.wallet}) — <strong>{req.status}</strong>
+                  {req.status === "pending" && (
+                    <>
+                      <button
+                        className="connect-btn"
+                        onClick={() => updateRequest(poll.code, req.wallet, "approved")}
+                        style={{ marginLeft: "1rem" }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="signout-btn"
+                        onClick={() => updateRequest(poll.code, req.wallet, "denied")}
+                        style={{ marginLeft: "0.5rem" }}
+                      >
+                        Deny
+                      </button>
+                    </>
+                  )}
+                </div>
+            ))
+          )}
         </div>
-      )}
+      ))}
+
     </section>
   );
 };
