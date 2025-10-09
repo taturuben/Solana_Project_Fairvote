@@ -211,3 +211,17 @@ main {
   color: #28a745;
   margin-top: 0.5rem;
 }
+
+.end-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.end-btn:hover {
+  background-color: #c82333;
+}

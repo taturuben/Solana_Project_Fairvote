@@ -7,22 +7,22 @@ const Vote = () => {
   const [status, setStatus] = useState(null);
   const [selectedOption, setSelectedOption] = useState("");
 
-  const wallet = localStorage.getItem("wallet");
+  const walletAddress = localStorage.getItem("walletAddress");
   const username = localStorage.getItem("username");
 
-  // 🔄 Auto-load poll if user is creator or has requested access
+  // Auto-load poll if user is creator or has requested access
   if (!poll) {
     const polls = JSON.parse(localStorage.getItem("polls")) || [];
     const savedCode = localStorage.getItem("activePollCode");
 
     if (savedCode) {
-      const found = polls.find(p => p.code === savedCode);
+      const found = polls.find(p => p.code === savedCode && !p.ended);
       if (found) {
-        if (found.creator === wallet) {
+        if (found.creator === walletAddress) {
           setPoll(found);
           setStatus("approved");
         } else {
-          const req = found.requests.find(r => r.wallet === wallet);
+          const req = found.requests.find(r => r.walletAddress === walletAddress);
           if (req) {
             setPoll(found);
             setStatus(req.status);
@@ -35,7 +35,7 @@ const Vote = () => {
   const handleSubmitCode = (e) => {
     e.preventDefault();
     const polls = JSON.parse(localStorage.getItem("polls")) || [];
-    const found = polls.find(p => p.code === code.toUpperCase());
+    const found = polls.find(p => p.code === code.toUpperCase() && !p.ended);
 
     if (!found) {
       alert("Invalid code");
@@ -44,15 +44,15 @@ const Vote = () => {
 
     localStorage.setItem("activePollCode", code.toUpperCase());
 
-    if (found.creator === wallet) {
+    if (found.creator === walletAddress) {
       setPoll(found);
       setStatus("approved");
       return;
     }
 
-    const existingRequest = found.requests.find(r => r.wallet === wallet);
+    const existingRequest = found.requests.find(r => r.walletAddress === walletAddress);
     if (!existingRequest) {
-      found.requests.push({ wallet, username, status: "pending" });
+      found.requests.push({ walletAddress, username, status: "pending" });
       localStorage.setItem("polls", JSON.stringify(polls));
       setStatus("pending");
     } else {
@@ -67,13 +67,13 @@ const Vote = () => {
     const polls = JSON.parse(localStorage.getItem("polls")) || [];
     const updatedPoll = polls.find(p => p.code === poll.code);
 
-    const alreadyVoted = updatedPoll.votes.find(v => v.wallet === wallet);
+    const alreadyVoted = updatedPoll.votes.find(v => v.walletAddress === walletAddress);
     if (alreadyVoted) {
       alert("You already voted.");
       return;
     }
 
-    updatedPoll.votes.push({ wallet, option: selectedOption });
+    updatedPoll.votes.push({ walletAddress, option: selectedOption });
     localStorage.setItem("polls", JSON.stringify(polls));
 
     setPoll({ ...updatedPoll });
@@ -107,7 +107,7 @@ const Vote = () => {
           <h3>{poll.title}</h3>
 
           {/* Show status only if user is not the creator */}
-          {poll.creator !== wallet && (
+          {poll.creator !== walletAddress && (
             <>
               {status === "pending" && <p>Your request is pending approval.</p>}
               {status === "denied" && <p>Your request was denied.</p>}
@@ -116,7 +116,7 @@ const Vote = () => {
 
           {/* Show vote form or confirmation if approved */}
           {status === "approved" && (() => {
-            const voted = poll.votes.find(v => v.wallet === wallet);
+            const voted = poll.votes.find(v => v.walletAddress === walletAddress);
             return voted ? (
               <div className="voted-card">
                 <p><strong>You voted for:</strong></p>

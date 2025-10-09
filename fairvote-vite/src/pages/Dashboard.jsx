@@ -11,7 +11,7 @@ const Dashboard = () => {
     setPolls(savedPolls);
   }, []);
 
-  const walletAddress = localStorage.getItem("wallet"); // your wallet
+  const walletAddress = localStorage.getItem("walletAddress"); // your walletAddress
   const allPolls = JSON.parse(localStorage.getItem("polls")) || [];
   const myPolls = allPolls.filter(p => p.creator === walletAddress);
 
@@ -29,7 +29,6 @@ const Dashboard = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const walletAddress = localStorage.getItem("wallet");
     const username = localStorage.getItem("username");
     const newPoll = {
       title,
@@ -38,13 +37,15 @@ const Dashboard = () => {
       creator: walletAddress,
       requests: [
         {
-          wallet: walletAddress,
+          walletAddress: walletAddress,
           username: username,
           status: "approved"
         }
       ],
-      votes: []
+      votes: [],
+      ended: false
     };
+
     const updatedPolls = [...polls, newPoll];
     setPolls(updatedPolls);
     localStorage.setItem("polls", JSON.stringify(updatedPolls));
@@ -54,17 +55,38 @@ const Dashboard = () => {
 
     localStorage.setItem("activePollCode", newPoll.code);
   };
-    const updateRequest = (code, wallet, newStatus) => {
-    const polls = JSON.parse(localStorage.getItem("polls")) || [];
-    const pollIndex = polls.findIndex(p => p.code === code);
-    if (pollIndex === -1) return;
+    const updateRequest = (code, walletAddress, newStatus) => {
+      const polls = JSON.parse(localStorage.getItem("polls")) || [];
+      const pollIndex = polls.findIndex(p => p.code === code);
+      if (pollIndex === -1) return;
 
-    const request = polls[pollIndex].requests.find(r => r.wallet === wallet);
-    if (request) {
-      request.status = newStatus;
-      localStorage.setItem("polls", JSON.stringify(polls));
-      setPolls(polls); // refresh UI
-    }
+      const request = polls[pollIndex].requests.find(r => r.walletAddress === walletAddress);
+      if (request) {
+        request.status = newStatus;
+        localStorage.setItem("polls", JSON.stringify(polls));
+        setPolls(polls); // refresh UI
+      }
+    };
+    
+    const endElection = (code) => {
+      const polls = JSON.parse(localStorage.getItem("polls")) || [];
+      const updatedPolls = polls.map(p => {
+        if (p.code === code) {
+          return {
+            ...p,
+            ended: true,
+            requests: [],
+            code: null
+          };
+        }
+        return p;
+      });
+
+      localStorage.setItem("polls", JSON.stringify(updatedPolls));
+      localStorage.removeItem("activePollCode");
+
+      const remaining = updatedPolls.filter(p => p.creator === walletAddress);
+      setPolls(remaining);
     };
 
   return (
@@ -108,37 +130,47 @@ const Dashboard = () => {
       {myPolls.map((poll, idx) => (
         <div key={idx} className="poll-card">
           <h4>{poll.title}</h4>
-          <p><strong>Invite Code:</strong> {poll.code}</p>
 
-          <h5>Requests to Vote:</h5>
-          {poll.requests.length === 0 ? (
-            <p>No requests yet.</p>
+          {poll.ended ? (
+            <p style={{ color: "red", fontWeight: "bold" }}>Voting ended.</p>
           ) : (
-            poll.requests
-              .filter(req => req.wallet !== poll.creator)
-              .map((req, rIdx) => (
-                <div key={rIdx} style={{ marginBottom: "0.5rem" }}>
-                  {req.username} ({req.wallet}) — <strong>{req.status}</strong>
-                  {req.status === "pending" && (
-                    <>
-                      <button
-                        className="connect-btn"
-                        onClick={() => updateRequest(poll.code, req.wallet, "approved")}
-                        style={{ marginLeft: "1rem" }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        className="signout-btn"
-                        onClick={() => updateRequest(poll.code, req.wallet, "denied")}
-                        style={{ marginLeft: "0.5rem" }}
-                      >
-                        Deny
-                      </button>
-                    </>
-                  )}
-                </div>
-            ))
+            <>
+              <button onClick={() => endElection(poll.code)} className="end-btn">
+                End Election
+              </button>
+              <p><strong>Invite Code:</strong> {poll.code}</p>
+
+              <h5>Requests to Vote:</h5>
+              {poll.requests.length === 0 ? (
+                <p>No requests yet.</p>
+              ) : (
+                poll.requests
+                  .filter(req => req.walletAddress !== poll.creator)
+                  .map((req, rIdx) => (
+                    <div key={rIdx} style={{ marginBottom: "0.5rem" }}>
+                      {req.username} ({req.walletAddress}) — <strong>{req.status}</strong>
+                      {req.status === "pending" && (
+                        <>
+                          <button
+                            className="connect-btn"
+                            onClick={() => updateRequest(poll.code, req.walletAddress, "approved")}
+                            style={{ marginLeft: "1rem" }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="signout-btn"
+                            onClick={() => updateRequest(poll.code, req.walletAddress, "denied")}
+                            style={{ marginLeft: "0.5rem" }}
+                          >
+                            Deny
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))
+              )}
+            </>
           )}
         </div>
       ))}
