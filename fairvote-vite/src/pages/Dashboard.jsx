@@ -107,25 +107,44 @@ const Dashboard = () => {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="poll-form">
-          <input
-            type="text"
-            placeholder="Poll Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          {options.map((opt, idx) => (
+          <h3>Create a New Poll</h3>
+
+          <div className="form-group">
+            <label htmlFor="title">Poll Title</label>
             <input
-              key={idx}
+              id="title"
               type="text"
-              placeholder={`Option ${idx + 1}`}
-              value={opt}
-              onChange={(e) => handleOptionChange(idx, e.target.value)}
+              placeholder="e.g. Best Blockchain"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               required
             />
-          ))}
-          <button type="button" onClick={addOption} className="connect-btn">Add Option</button>
-          <button type="submit" className="connect-btn">Create Poll</button>
+          </div>
+
+          <div className="form-group">
+            <label>Options</label>
+            {options.map((opt, idx) => (
+              <input
+                key={idx}
+                type="text"
+                placeholder={`Option ${idx + 1}`}
+                value={opt}
+                onChange={(e) => handleOptionChange(idx, e.target.value)}
+                required
+                className="option-input"
+              />
+            ))}
+            <button type="button" onClick={addOption} className="add-option-btn">
+              + Add Another Option
+            </button>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="submit-btn">Create Poll</button>
+            <button type="button" onClick={() => setShowForm(false)} className="cancel-btn">
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 

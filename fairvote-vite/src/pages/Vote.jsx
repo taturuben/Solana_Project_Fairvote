@@ -95,14 +95,26 @@ const Vote = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmitCode} className="code-form">
-          <input
-            type="text"
-            placeholder="Enter poll code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            required
-          />
-          <button type="submit" className="connect-btn">Join Poll</button>
+          <h3>Join a Poll</h3>
+
+          <div className="form-group">
+            <label htmlFor="pollCode">Poll Code</label>
+            <input
+              id="pollCode"
+              type="text"
+              placeholder="e.g. ABC123"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              required
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="submit-btn">Join Poll</button>
+            <button type="button" onClick={() => setShowCodeInput(false)} className="cancel-btn">
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
