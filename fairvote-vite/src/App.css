@@ -129,11 +129,64 @@ main {
 }
 
 .poll-form {
+  background: #f9f9f9;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: auto;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.option-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.add-option-btn {
+  background-color: #eee;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.form-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-width: 600px;
-  margin: 2rem auto;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.submit-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .poll-list {
@@ -189,6 +242,11 @@ main {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
   max-width: 600px;
   margin: 2rem auto;
+}
+
+.poll-form h3 {
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
 .vote-option {
