@@ -53,7 +53,12 @@ const Dashboard = () => {
     setOptions(["", ""]);
     setShowForm(false);
 
-    localStorage.setItem("activePollCode", newPoll.code);
+    const activeCodes = JSON.parse(localStorage.getItem("activePollCodes")) || [];
+    if (!activeCodes.includes(newPoll.code)) {
+      activeCodes.push(newPoll.code);
+      localStorage.setItem("activePollCodes", JSON.stringify(activeCodes));
+    }
+
   };
     const updateRequest = (code, walletAddress, newStatus) => {
       const polls = JSON.parse(localStorage.getItem("polls")) || [];
@@ -75,7 +80,7 @@ const Dashboard = () => {
           return {
             ...p,
             ended: true,
-            requests: [],
+            requests: p.requests,
             code: null
           };
         }
