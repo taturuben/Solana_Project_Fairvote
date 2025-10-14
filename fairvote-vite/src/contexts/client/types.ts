@@ -131,6 +131,7 @@ export interface ElectionResponse {
   address: string;
   data: ElectionData;
   requests: VotingRequestData[];
+  isRunning: boolean;
 }
 
 export interface VotersResponse {

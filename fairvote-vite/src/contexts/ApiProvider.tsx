@@ -15,5 +15,5 @@ export function useApi() {
         throw new Error("useApi hook can only be used within an <ApiProvider/> component");
     }
 
-    return { context };
+    return context;
 }

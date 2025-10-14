@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 body {
   margin: 0;
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -174,6 +176,15 @@ main {
 .submit-btn {
   background-color: #4caf50;
   color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.submit-btn-loading {
+  background-color: oklch(87.1% 0.15 154.449);
+  color: black;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;

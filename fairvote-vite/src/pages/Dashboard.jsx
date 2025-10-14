@@ -1,9 +1,14 @@
+import { LoaderCircle } from 'lucide-react';
 import React, { useState, useEffect } from "react";
+import { useApi } from "../contexts/ApiProvider";
+import { cn } from "../utilities/cn";
 
 const Dashboard = () => {
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState("");
+  const apiClient = useApi();
+  const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState(["", ""]);
+  const [showForm, setShowForm] = useState(false);
+  const [question, setQuestion] = useState("");
   const [polls, setPolls] = useState([]);
 
   useEffect(() => {
@@ -12,8 +17,7 @@ const Dashboard = () => {
   }, []);
 
   const walletAddress = localStorage.getItem("walletAddress"); // your walletAddress
-  const allPolls = JSON.parse(localStorage.getItem("polls")) || [];
-  const myPolls = allPolls.filter(p => p.creator === walletAddress);
+  const myPolls = JSON.parse(localStorage.getItem("polls")) || [];
 
   const handleOptionChange = (index, value) => {
     const updated = [...options];
@@ -27,13 +31,26 @@ const Dashboard = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    const wallet = window.solana.publicKey.toBase58();
+
+    const { uuid, address } = await apiClient.createElection(
+      wallet,
+      {
+        entries: [{
+          question: question,
+          options: options.filter(opt => opt.trim() !== "")
+        }]
+      }
+    );
+
     const username = localStorage.getItem("username");
     const newPoll = {
-      title,
+      question,
       options: options.filter(opt => opt.trim() !== ""),
-      code: generateCode(),
+      code: address,
       creator: walletAddress,
       requests: [
         {
@@ -46,53 +63,64 @@ const Dashboard = () => {
       ended: false
     };
 
-    const updatedPolls = [...polls, newPoll];
+    const elections = await apiClient.getElections(wallet);
+    const updatedPolls = elections.map((e) => {
+      return {
+        code: e.address,
+        creator: wallet,
+        options: e.data.entries[0].options,
+        question: e.data.entries[0].question,
+        requests: e.requests, // TODO: map this shit
+        ended: !e.isRunning
+      }
+    });
+
     setPolls(updatedPolls);
     localStorage.setItem("polls", JSON.stringify(updatedPolls));
-    setTitle("");
+
+    localStorage.setItem("activePollCodes", JSON.stringify(
+      updatedPolls.map((p) => p.code)
+    ));
+
+    setQuestion("");
     setOptions(["", ""]);
     setShowForm(false);
-
-    const activeCodes = JSON.parse(localStorage.getItem("activePollCodes")) || [];
-    if (!activeCodes.includes(newPoll.code)) {
-      activeCodes.push(newPoll.code);
-      localStorage.setItem("activePollCodes", JSON.stringify(activeCodes));
-    }
-
+    setIsLoading(false);
   };
-    const updateRequest = (code, walletAddress, newStatus) => {
-      const polls = JSON.parse(localStorage.getItem("polls")) || [];
-      const pollIndex = polls.findIndex(p => p.code === code);
-      if (pollIndex === -1) return;
+  
+  const updateRequest = (code, walletAddress, newStatus) => {
+    const polls = JSON.parse(localStorage.getItem("polls")) || [];
+    const pollIndex = polls.findIndex(p => p.code === code);
+    if (pollIndex === -1) return;
 
-      const request = polls[pollIndex].requests.find(r => r.walletAddress === walletAddress);
-      if (request) {
-        request.status = newStatus;
-        localStorage.setItem("polls", JSON.stringify(polls));
-        setPolls(polls); // refresh UI
+    const request = polls[pollIndex].requests.find(r => r.walletAddress === walletAddress);
+    if (request) {
+      request.status = newStatus;
+      localStorage.setItem("polls", JSON.stringify(polls));
+      setPolls(polls); // refresh UI
+    }
+  };
+  
+  const endElection = (code) => {
+    const polls = JSON.parse(localStorage.getItem("polls")) || [];
+    const updatedPolls = polls.map(p => {
+      if (p.code === code) {
+        return {
+          ...p,
+          ended: true,
+          requests: p.requests,
+          code: null
+        };
       }
-    };
-    
-    const endElection = (code) => {
-      const polls = JSON.parse(localStorage.getItem("polls")) || [];
-      const updatedPolls = polls.map(p => {
-        if (p.code === code) {
-          return {
-            ...p,
-            ended: true,
-            requests: p.requests,
-            code: null
-          };
-        }
-        return p;
-      });
+      return p;
+    });
 
-      localStorage.setItem("polls", JSON.stringify(updatedPolls));
-      localStorage.removeItem("activePollCode");
+    localStorage.setItem("polls", JSON.stringify(updatedPolls));
+    localStorage.removeItem("activePollCode");
 
-      const remaining = updatedPolls.filter(p => p.creator === walletAddress);
-      setPolls(remaining);
-    };
+    const remaining = updatedPolls.filter(p => p.creator === walletAddress);
+    setPolls(remaining);
+  };
 
   return (
     <section className="section">
@@ -110,13 +138,14 @@ const Dashboard = () => {
           <h3>Create a New Poll</h3>
 
           <div className="form-group">
-            <label htmlFor="title">Poll Title</label>
+            <label htmlFor="question">Question</label>
             <input
-              id="title"
+              id="question"
+              className="option-input"
               type="text"
-              placeholder="e.g. Best Blockchain"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Who should be the president?"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
               required
             />
           </div>
@@ -127,7 +156,7 @@ const Dashboard = () => {
               <input
                 key={idx}
                 type="text"
-                placeholder={`Option ${idx + 1}`}
+                placeholder={`Candidate ${idx + 1}`}
                 value={opt}
                 onChange={(e) => handleOptionChange(idx, e.target.value)}
                 required
@@ -140,7 +169,16 @@ const Dashboard = () => {
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="submit-btn">Create Poll</button>
+            <button type="submit" className={cn(
+                "flex justify-between items-center gap-2",
+                isLoading ? "submit-btn-loading" : "submit-btn"
+              )}>
+              <LoaderCircle className={cn(
+                "animate-spin h-5",
+                isLoading ? "inline" : "hidden"
+              )}/>
+              Create Poll
+            </button>
             <button type="button" onClick={() => setShowForm(false)} className="cancel-btn">
               Cancel
             </button>
@@ -151,9 +189,10 @@ const Dashboard = () => {
       <hr style={{ margin: "2rem 0" }} />
 
       <h3>Created Polls</h3>
-      {myPolls.map((poll, idx) => (
+      {myPolls
+        .sort((a,b) => (a.code?0:1) - (b.code?0:1)).map((poll, idx) => (
         <div key={idx} className="poll-card">
-          <h4>{poll.title}</h4>
+          <h4>{poll.question}</h4>
 
           {poll.ended ? (
             <p style={{ color: "red", fontWeight: "bold" }}>Voting ended.</p>

@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { canonicalize } from 'json-canonicalize';
 import * as cryptoUtils from './cryptography';
 import { Keypair } from "@solana/web3.js";
@@ -48,12 +49,13 @@ export class APIClient {
    */
   async createElection(
     wallet: string,
-    electionUUID: string,
     electionData: ElectionData
   ): Promise<{
     uuid: string,
     address: string,
   }> {
+    const electionUUID = uuidv4();
+
     const response = await fetch(
       `${this.baseUrl}/${wallet}/election/${electionUUID}`,
       {
@@ -127,6 +129,7 @@ export class APIClient {
       throw new Error(data.message);
     }
 
+    console.log("getElections", data.data);
     return (data as SuccessResponse<ElectionResponse[]>).data;
   }
 
