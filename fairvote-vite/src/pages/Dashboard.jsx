@@ -2,6 +2,8 @@ import { LoaderCircle } from 'lucide-react';
 import React, { useState, useEffect } from "react";
 import { useApi } from "../contexts/ApiProvider";
 import { cn } from "../utilities/cn";
+import { APIClient } from '../contexts/client';
+import bs58 from "bs58";
 
 const Dashboard = () => {
   const apiClient = useApi();
@@ -66,6 +68,7 @@ const Dashboard = () => {
     const elections = await apiClient.getElections(wallet);
     const updatedPolls = elections.map((e) => {
       return {
+        uuid: e.uuid,
         code: e.address,
         creator: wallet,
         options: e.data.entries[0].options,
@@ -101,7 +104,16 @@ const Dashboard = () => {
     }
   };
   
-  const endElection = (code) => {
+  const endElection = async (poll) => {
+    try {
+      const { signature } = await window.solana.signMessage(new TextEncoder().encode(poll.uuid), 'utf8');
+      await apiClient.stopElection(poll.uuid, bs58.encode(Uint8Array.from(signature)));
+    } catch (e) {
+      console.log(e);
+      return;
+    }
+
+    const code = poll.code;
     const polls = JSON.parse(localStorage.getItem("polls")) || [];
     const updatedPolls = polls.map(p => {
       if (p.code === code) {
@@ -190,18 +202,18 @@ const Dashboard = () => {
 
       <h3>Created Polls</h3>
       {myPolls
-        .sort((a,b) => (a.code?0:1) - (b.code?0:1)).map((poll, idx) => (
+        .sort((a,b) => (a.ended?1:0) - (b.ended?1:0)).map((poll, idx) => (
         <div key={idx} className="poll-card">
-          <h4>{poll.question}</h4>
+          <div className='flex gap-2 justify-between items-center'>
+            <h1 className='text-l font-bold'>{poll.question}</h1>
+            <EndButton onClick={() => endElection(poll)}/>
+          </div>
 
           {poll.ended ? (
             <p style={{ color: "red", fontWeight: "bold" }}>Voting ended.</p>
           ) : (
             <>
-              <button onClick={() => endElection(poll.code)} className="end-btn">
-                End Election
-              </button>
-              <p><strong>Invite Code:</strong> {poll.code}</p>
+              <p><span className='font-semibold'>Invite Code:</span> <span className=''>{poll.code}</span></p>
 
               <h5>Requests to Vote:</h5>
               {poll.requests.length === 0 ? (
@@ -241,5 +253,27 @@ const Dashboard = () => {
     </section>
   );
 };
+
+const EndButton = ({ children, onClick }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handler = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await onClick();
+    setIsLoading(false);
+  }
+
+  return <button onClick={handler} className={cn(
+            "flex justify-between items-center gap-2",
+            "end-btn"
+          )}>
+            <LoaderCircle className={cn(
+              "animate animate-spin h-5",
+              isLoading ? "inline" : "hidden"
+            )}/>
+            End Election
+        </button>
+}
 
 export default Dashboard;
