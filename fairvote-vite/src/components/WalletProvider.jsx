@@ -7,7 +7,8 @@ import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 const WalletConnectionProvider = ({ children }) => {
-  const endpoint = clusterApiUrl("mainnet-beta");
+  const endpoint = import.meta.env.VITE_SOLANA_RPC_ENDPOINT;
+  console.log("[WalletConnectionProvider]", "Using endpoint:", endpoint);
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 

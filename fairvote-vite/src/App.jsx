@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Vote from "./pages/Vote";
 import Results from "./pages/Results";
 import WalletConnectionProvider from "./components/WalletProvider";
+import { ApiProvider } from "./contexts/ApiProvider";
 
 function App() {
   const [wallet, setWallet] = useState(null);
@@ -29,18 +30,20 @@ function App() {
 
   return (
     <WalletConnectionProvider>
-      <Router>
-        <Header wallet={wallet} username={username} />
-        <main>
-          <Routes>
-            <Route path="/" element={<Navigate to="/connect" />} />
-            <Route path="/connect" element={<WalletConnect onConnect={handleConnect} />} />
-            <Route path="/dashboard" element={wallet ? <Dashboard /> : <Navigate to="/connect" />} />
-            <Route path="/vote" element={<Vote />} />
-            <Route path="/results" element={<Results />} />
-          </Routes>
-        </main>
-      </Router>
+      <ApiProvider>
+        <Router>
+          <Header wallet={wallet} username={username} />
+          <main>
+            <Routes>
+              <Route path="/" element={<Navigate to="/connect" />} />
+              <Route path="/connect" element={<WalletConnect onConnect={handleConnect} />} />
+              <Route path="/dashboard" element={wallet ? <Dashboard /> : <Navigate to="/connect" />} />
+              <Route path="/vote" element={<Vote />} />
+              <Route path="/results" element={<Results />} />
+            </Routes>
+          </main>
+        </Router>
+      </ApiProvider>
     </WalletConnectionProvider>
   );
 }
