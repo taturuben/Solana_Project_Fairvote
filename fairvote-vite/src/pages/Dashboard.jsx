@@ -4,6 +4,25 @@ import { useApi } from "../contexts/ApiProvider";
 import { cn } from "../utilities/cn";
 import { APIClient } from '../contexts/client';
 import bs58 from "bs58";
+import { EndButton } from '../components/EndButton';
+
+async function fetchPolls(apiClient) {
+    const wallet = window.solana.publicKey.toBase58();
+    const elections = await apiClient.getElections(wallet);
+    const updatedPolls = elections.map((e) => {
+      return {
+        uuid: e.uuid,
+        code: e.address,
+        creator: wallet,
+        options: e.data.entries[0].options,
+        question: e.data.entries[0].question,
+        requests: e.requests, // TODO: map this shit
+        ended: !e.isRunning,
+        votes: []
+      }
+    });
+    return updatedPolls;
+}
 
 const Dashboard = () => {
   const apiClient = useApi();
@@ -14,6 +33,7 @@ const Dashboard = () => {
   const [polls, setPolls] = useState([]);
 
   useEffect(() => {
+
     const savedPolls = JSON.parse(localStorage.getItem("polls")) || [];
     setPolls(savedPolls);
   }, []);
@@ -36,8 +56,8 @@ const Dashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    const wallet = window.solana.publicKey.toBase58();
 
+    const wallet = window.solana.publicKey.toBase58();
     const { uuid, address } = await apiClient.createElection(
       wallet,
       {
@@ -65,18 +85,7 @@ const Dashboard = () => {
       ended: false
     };
 
-    const elections = await apiClient.getElections(wallet);
-    const updatedPolls = elections.map((e) => {
-      return {
-        uuid: e.uuid,
-        code: e.address,
-        creator: wallet,
-        options: e.data.entries[0].options,
-        question: e.data.entries[0].question,
-        requests: e.requests, // TODO: map this shit
-        ended: !e.isRunning
-      }
-    });
+    const updatedPolls = await fetchPolls(apiClient);
 
     setPolls(updatedPolls);
     localStorage.setItem("polls", JSON.stringify(updatedPolls));
@@ -206,14 +215,14 @@ const Dashboard = () => {
         <div key={idx} className="poll-card">
           <div className='flex gap-2 justify-between items-center'>
             <h1 className='text-l font-bold'>{poll.question}</h1>
-            <EndButton onClick={() => endElection(poll)}/>
+            {poll.ended || <EndButton onClick={() => endElection(poll)}/>}
           </div>
 
           {poll.ended ? (
             <p style={{ color: "red", fontWeight: "bold" }}>Voting ended.</p>
           ) : (
             <>
-              <p><span className='font-semibold'>Invite Code:</span> <span className=''>{poll.code}</span></p>
+              <p><span className='font-semibold'>Invite Code:</span> <span className='cursor-copy underline underline-offset-2 hover:no-underline' onClick={(e) => {navigator.clipboard.writeText(poll.uuid)}}>{poll.uuid}</span></p>
 
               <h5>Requests to Vote:</h5>
               {poll.requests.length === 0 ? (
@@ -253,27 +262,5 @@ const Dashboard = () => {
     </section>
   );
 };
-
-const EndButton = ({ children, onClick }) => {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handler = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    await onClick();
-    setIsLoading(false);
-  }
-
-  return <button onClick={handler} className={cn(
-            "flex justify-between items-center gap-2",
-            "end-btn"
-          )}>
-            <LoaderCircle className={cn(
-              "animate animate-spin h-5",
-              isLoading ? "inline" : "hidden"
-            )}/>
-            End Election
-        </button>
-}
 
 export default Dashboard;

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { cn } from "../utilities/cn";
+import { LoaderCircle } from 'lucide-react';
+import { useApi } from "../contexts/ApiProvider";
+import bs58 from "bs58";
 
 const Vote = () => {
+  const apiClient = useApi();
+  const [isLoading, setIsLoading] = useState(false);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [code, setCode] = useState("");
   const [pollsToShow, setPollsToShow] = useState([]);
@@ -24,19 +30,19 @@ const Vote = () => {
     setPollsToShow(filtered);
   }, []);
 
-  const handleSubmitCode = (e) => {
+  const handleSubmitCode = async (e) => {
     e.preventDefault();
-    const allPolls = JSON.parse(localStorage.getItem("polls")) || [];
-    const found = allPolls.find(p => p.code === code.toUpperCase());
+    setIsLoading(true);
 
-    if (!found) {
-      alert("Poll not found.");
-      return;
+    try {
+      await apiClient.requestVotingRight(code, window.solana.publicKey.toBase58());
+    } catch (e) {
+      console.log("Vote.jsx error", e);
     }
 
     const activeCodes = JSON.parse(localStorage.getItem("activePollCodes")) || [];
-    if (!activeCodes.includes(found.code)) {
-      activeCodes.push(found.code);
+    if (!activeCodes.includes(code)) {
+      activeCodes.push(code);
       localStorage.setItem("activePollCodes", JSON.stringify(activeCodes));
     }
 
@@ -58,6 +64,7 @@ const Vote = () => {
 
     setCode("");
     setShowCodeInput(false);
+    setIsLoading(false);
   };
 
   const handleVote = (e, pollCode) => {
@@ -100,17 +107,27 @@ const Vote = () => {
           <div className="form-group">
             <label htmlFor="pollCode">Poll Code</label>
             <input
+              className="w-full"
               id="pollCode"
               type="text"
-              placeholder="e.g. ABC123"
+              placeholder="e.g. 113c1c6c-e9c1-4717-8b78-6727ff080290"
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onChange={(e) => setCode(e.target.value)}
               required
             />
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="submit-btn">Join Poll</button>
+            <button type="submit" className={cn(
+              "flex justify-between items-center gap-2",
+              isLoading ? "submit-btn-loading" : "submit-btn"
+            )}>
+              <LoaderCircle className={cn(
+                "animate-spin h-5",
+                isLoading ? "inline" : "hidden"
+              )}/>
+              Join Poll
+            </button>
             <button type="button" onClick={() => setShowCodeInput(false)} className="cancel-btn">
               Cancel
             </button>
