@@ -3,32 +3,24 @@ import { cn } from "../utilities/cn";
 import { LoaderCircle } from 'lucide-react';
 import { useApi } from "../contexts/ApiProvider";
 import bs58 from "bs58";
+import useSWR from "swr";
 
 const Vote = () => {
   const apiClient = useApi();
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showCodeInput, setShowCodeInput] = useState(false);
-  const [code, setCode] = useState("");
-  const [pollsToShow, setPollsToShow] = useState([]);
   const [selectedOption, setSelectedOption] = useState("");
-
-  const walletAddress = localStorage.getItem("walletAddress");
-  const username = localStorage.getItem("username");
+  const [pollsToShow, setPollsToShow] = useState([]);
+  
+  let wallet = localStorage.getItem("wallet");
+  let username = localStorage.getItem("username");
+  
+  const { data: polls, mutate: refreshPolls } = useSWR(wallet + ".polls", () => apiClient.getPolls(wallet));
 
   useEffect(() => {
-    const allPolls = JSON.parse(localStorage.getItem("polls")) || [];
-    const activeCodes = JSON.parse(localStorage.getItem("activePollCodes")) || [];
-
-    const filtered = allPolls.filter(p =>
-      activeCodes.includes(p.code) &&
-      (
-        p.creator === walletAddress ||
-        p.requests.some(r => r.walletAddress === walletAddress)
-      )
-    );
-
-    setPollsToShow(filtered);
-  }, []);
+    if (polls) setPollsToShow(polls);
+  }, [polls]);
 
   const handleSubmitCode = async (e) => {
     e.preventDefault();
@@ -39,28 +31,7 @@ const Vote = () => {
     } catch (e) {
       console.log("Vote.jsx error", e);
     }
-
-    const activeCodes = JSON.parse(localStorage.getItem("activePollCodes")) || [];
-    if (!activeCodes.includes(code)) {
-      activeCodes.push(code);
-      localStorage.setItem("activePollCodes", JSON.stringify(activeCodes));
-    }
-
-    if (found.creator === walletAddress) {
-      setPollsToShow([...pollsToShow, found]);
-    } else {
-      const alreadyRequested = found.requests.find(r => r.walletAddress === walletAddress);
-      if (!alreadyRequested) {
-        found.requests.push({
-          walletAddress,
-          username,
-          status: "pending"
-        });
-        const updatedPolls = allPolls.map(p => p.code === found.code ? found : p);
-        localStorage.setItem("polls", JSON.stringify(updatedPolls));
-      }
-      setPollsToShow([...pollsToShow, found]);
-    }
+    await refreshPolls();
 
     setCode("");
     setShowCodeInput(false);
@@ -73,17 +44,17 @@ const Vote = () => {
     const pollIndex = allPolls.findIndex(p => p.code === pollCode);
     if (pollIndex === -1) return;
 
-    const poll = allPolls[pollIndex];
-    const alreadyVoted = poll.votes.find(v => v.walletAddress === walletAddress);
-    if (alreadyVoted) {
-      alert("You already voted.");
-      return;
-    }
+    // const poll = allPolls[pollIndex];
+    // const alreadyVoted = poll.votes.find(v => v.walletAddress === walletAddress);
+    // if (alreadyVoted) {
+    //   alert("You already voted.");
+    //   return;
+    // }
 
-    poll.votes.push({ walletAddress, option: selectedOption });
-    localStorage.setItem("polls", JSON.stringify(allPolls));
-    setSelectedOption("");
-    alert("Vote submitted!");
+    // poll.votes.push({ walletAddress, option: selectedOption });
+    // localStorage.setItem("polls", JSON.stringify(allPolls));
+    // setSelectedOption("");
+    // alert("Vote submitted!");
 
     const updated = allPolls.filter(p =>
       JSON.parse(localStorage.getItem("activePollCodes")).includes(p.code)
@@ -141,9 +112,8 @@ const Vote = () => {
         <p>No active polls yet.</p>
       ) : (
         pollsToShow.map((poll, idx) => {
-          const req = poll.requests.find(r => r.walletAddress === walletAddress);
-          const status = poll.creator === walletAddress ? "approved" : req?.status;
-          const voted = poll.votes.find(v => v.walletAddress === walletAddress);
+          const status = poll.status;
+          const voted = poll.voted;
 
           return (
             <div key={idx} className="poll-card">
@@ -153,18 +123,16 @@ const Vote = () => {
                 <p style={{ color: "red", fontWeight: "bold" }}>Voting has ended.</p>
               ) : (
                 <>
-                  {poll.creator !== walletAddress && (
-                    <>
-                      {status === "pending" && <p>Your request is pending approval.</p>}
-                      {status === "denied" && <p>Your request was denied.</p>}
-                    </>
-                  )}
+                  <>
+                    <span className="font-bold">{poll.election_uuid}</span>
+                    {status === "pending" && <p>Your request is pending approval.</p>}
+                    {status === "denied" && <p>Your request was denied.</p>}
+                  </>
 
                   {status === "approved" && (
                     voted ? (
                       <div className="voted-card">
-                        <p><strong>You voted for:</strong></p>
-                        <div className="voted-option">{voted.option}</div>
+                        <p><strong>You already voted. Wait for the election to end.</strong></p>
                       </div>
                     ) : (
                       <form onSubmit={(e) => handleVote(e, poll.code)}>

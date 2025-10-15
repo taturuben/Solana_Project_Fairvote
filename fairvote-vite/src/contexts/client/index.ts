@@ -37,6 +37,33 @@ export class APIClient {
   }
 
   // ============================================================================
+  // User-related functions
+  // ============================================================================
+  async getPolls(wallet: string) {
+    const response = await fetch(
+      `${this.baseUrl}/user/${wallet}/polls`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    const data = await response.json() as ApiResponse<{
+      election_uuid: string,
+      election_address: string,
+      status: string,
+      voted: boolean
+    }>;
+
+    if (data.status === "error") {
+      console.log(`Error in getPolls: ${JSON.stringify(data)}`);
+      throw new Error(data.message);
+    }
+    
+    return data.data;
+  }
+
+  // ============================================================================
   // Election Management
   // ============================================================================
 

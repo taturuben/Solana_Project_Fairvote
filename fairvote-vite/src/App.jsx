@@ -13,15 +13,22 @@ function App() {
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const savedWallet = localStorage.getItem("wallet");
-    const savedUsername = localStorage.getItem("username");
-    if (savedWallet && savedUsername) {
-      setWallet(savedWallet);
-      setUsername(savedUsername);
-    }
+    (async () => {
+      if (!window.solana.publicKey) {
+        await window.solana.connect();
+        // debugger;
+      }
+      const savedWallet = localStorage.getItem("wallet") || window.solana.publicKey.toBase58();
+      const savedUsername = localStorage.getItem("username");
+      if (savedWallet && savedUsername) {
+        setWallet(savedWallet);
+        setUsername(savedUsername);
+      }
+    })();
   }, []);
 
-  const handleConnect = (walletAddress, name) => {
+  const handleConnect = async (walletAddress, name) => {
+    await window.solana.connect();
     setWallet(walletAddress);
     setUsername(name);
     localStorage.setItem("wallet", walletAddress);
