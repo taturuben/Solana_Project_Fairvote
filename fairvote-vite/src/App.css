@@ -75,7 +75,7 @@ main {
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-  max-width: 600px;
+  max-width: 75%; /* 600px; */
   margin: 2rem auto;
 }
 
@@ -93,6 +93,50 @@ main {
 
 .signout-btn {
   background: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.signout-btn-loading {
+  background: #de707b;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.green-btn {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.green-btn-loading {
+  background: #82db84;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.green-btn:hover {
+  background: #3d8c3f;
   color: #fff;
   border: none;
   padding: 0.4rem 1rem;
@@ -251,8 +295,8 @@ main {
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-  max-width: 600px;
-  margin: 2rem auto;
+  max-width: 100%; /* 600px; */
+  /* margin: 2rem auto; */
 }
 
 .poll-form h3 {

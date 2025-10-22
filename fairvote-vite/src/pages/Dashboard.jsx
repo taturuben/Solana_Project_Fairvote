@@ -5,6 +5,7 @@ import { cn } from "../utilities/cn";
 import { APIClient } from '../contexts/client';
 import bs58 from "bs58";
 import { EndButton } from '../components/EndButton';
+import useSWR from 'swr';
 
 async function fetchPolls(apiClient) {
     const wallet = window.solana.publicKey.toBase58();
@@ -25,21 +26,19 @@ async function fetchPolls(apiClient) {
 }
 
 const Dashboard = () => {
+  const walletAddress = localStorage.getItem("wallet");
+
   const apiClient = useApi();
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState(["", ""]);
   const [showForm, setShowForm] = useState(false);
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState("");  
   const [polls, setPolls] = useState([]);
+  const { data: elections, mutate: refreshElections } = useSWR(walletAddress + ".elections", () => fetchPolls(apiClient));
 
   useEffect(() => {
-
-    const savedPolls = JSON.parse(localStorage.getItem("polls")) || [];
-    setPolls(savedPolls);
-  }, []);
-
-  const walletAddress = localStorage.getItem("walletAddress"); // your walletAddress
-  const myPolls = JSON.parse(localStorage.getItem("polls")) || [];
+    if (elections) setPolls(elections);
+  }, [elections]);
 
   const handleOptionChange = (index, value) => {
     const updated = [...options];
@@ -48,10 +47,6 @@ const Dashboard = () => {
   };
 
   const addOption = () => setOptions([...options, ""]);
-
-  const generateCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,30 +63,26 @@ const Dashboard = () => {
       }
     );
 
-    const username = localStorage.getItem("username");
-    const newPoll = {
-      question,
-      options: options.filter(opt => opt.trim() !== ""),
-      code: address,
-      creator: walletAddress,
-      requests: [
-        {
-          walletAddress: walletAddress,
-          username: username,
-          status: "approved"
-        }
-      ],
-      votes: [],
-      ended: false
-    };
+    // const username = localStorage.getItem("username");
+    // const newPoll = {
+    //   question,
+    //   options: options.filter(opt => opt.trim() !== ""),
+    //   code: address,
+    //   creator: walletAddress,
+    //   requests: [
+    //     {
+    //       walletAddress: walletAddress,
+    //       username: username,
+    //       status: "approved"
+    //     }
+    //   ],
+    //   votes: [],
+    //   ended: false
+    // };
 
-    const updatedPolls = await fetchPolls(apiClient);
-
-    setPolls(updatedPolls);
-    localStorage.setItem("polls", JSON.stringify(updatedPolls));
-
+    await refreshElections();
     localStorage.setItem("activePollCodes", JSON.stringify(
-      updatedPolls.map((p) => p.code)
+      polls.map((p) => p.code)
     ));
 
     setQuestion("");
@@ -210,9 +201,9 @@ const Dashboard = () => {
       <hr style={{ margin: "2rem 0" }} />
 
       <h3>Created Polls</h3>
-      {myPolls
+      {elections && elections
         .sort((a,b) => (a.ended?1:0) - (b.ended?1:0)).map((poll, idx) => (
-        <div key={idx} className="poll-card">
+        <div key={idx} className="poll-card min-w-fit">
           <div className='flex gap-2 justify-between items-center'>
             <h1 className='text-l font-bold'>{poll.question}</h1>
             {poll.ended || <EndButton onClick={() => endElection(poll)}/>}
@@ -229,29 +220,8 @@ const Dashboard = () => {
                 <p>No requests yet.</p>
               ) : (
                 poll.requests
-                  .filter(req => req.walletAddress !== poll.creator)
                   .map((req, rIdx) => (
-                    <div key={rIdx} style={{ marginBottom: "0.5rem" }}>
-                      {req.username} ({req.walletAddress}) — <strong>{req.status}</strong>
-                      {req.status === "pending" && (
-                        <>
-                          <button
-                            className="connect-btn"
-                            onClick={() => updateRequest(poll.code, req.walletAddress, "approved")}
-                            style={{ marginLeft: "1rem" }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            className="signout-btn"
-                            onClick={() => updateRequest(poll.code, req.walletAddress, "denied")}
-                            style={{ marginLeft: "0.5rem" }}
-                          >
-                            Deny
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <VotingRequestTile req={req} rIdx={rIdx} key={rIdx} refresh={refreshElections}/>
                   ))
               )}
             </>
@@ -262,5 +232,83 @@ const Dashboard = () => {
     </section>
   );
 };
+
+const VotingRequestTile = ({ req, rIdx, refresh }) => {
+  const [disableApprove, setDisableApprove] = useState(false);
+  const [disableDeny, setDisableDeny] = useState(false);
+  const apiClient = useApi();
+
+  const approveHandler = async () => {
+    setDisableDeny(true);
+    const { signature } = await window.solana.signMessage(new TextEncoder().encode(req.uuid), 'utf8');
+    await apiClient.approveRequest(req.uuid, bs58.encode(Uint8Array.from(signature)));
+    await refresh();
+    setDisableDeny(false);
+  }
+
+  const denyHandler = async () => {
+    setDisableApprove(true);
+    console.log("Denied");
+    setDisableApprove(false);
+  }
+
+  return <div key={rIdx} style={{ marginBottom: "0.5rem" }} className='flex justify-between items-center'>
+        {req.user}
+        <div className='flex justify-between gap-1'>
+            <ApproveButton disabled={disableApprove} handler={approveHandler}/>
+            <DenyButton disabled={disableDeny} handler={denyHandler}/>
+        </div>
+      </div>;
+}
+
+const ApproveButton = ({ disabled, handler }) => {  
+  const [isLoading, setIsLoading] = useState(false);
+  
+  return <button
+      disabled={disabled}
+      onClick={async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        await handler();
+        setIsLoading(false);
+      }}
+      className={cn(
+        (isLoading || disabled) ? "green-btn-loading" : "green-btn",
+        "flex justify-between items-center gap-2"
+      )}
+    >
+      <LoaderCircle className={cn(
+        'animate-spin h-5',
+        isLoading ? 'inline' : 'hidden'
+      )}/>
+      Approve
+    </button>;
+}
+
+const DenyButton = ({ disabled, handler }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  return <button
+      disabled={disabled}
+      onClick={async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        await handler();
+        setIsLoading(false);
+      }}
+      className={cn(
+        (isLoading || disabled) ? "signout-btn-loading" : "signout-btn",
+        "flex justify-between items-center gap-2"
+      )}
+    >
+      <LoaderCircle
+        className={cn(
+          'animate-spin h-5',
+          isLoading ? 'inline' : 'hidden'
+        )}
+      />
+      Deny
+    </button>;
+}
 
 export default Dashboard;
